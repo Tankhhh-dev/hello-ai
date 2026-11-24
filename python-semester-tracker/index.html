@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Python 学习进度</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eef1f6;color:#1c2440;font:1rem/1.65 system-ui,"Microsoft YaHei",sans-serif}
+header{background:#20254b;color:#fff;padding:3.5rem 1.25rem 4rem}
+.wrap{max-width:61rem;margin:auto}
+h1{font-size:clamp(2rem,7vw,3.6rem);line-height:1.08;letter-spacing:-.04em;margin:.3rem 0 .8rem}
+h2{font-size:1.4rem;line-height:1.35;margin:0}
+p{margin:.4rem 0}
+.eyebrow{font-size:1rem;color:#d5d7ff}
+.rules{color:#e1e4f9}
+main{padding:0 1.25rem 3rem}
+.resume{margin-top:-1.75rem;background:#fff;border:1px solid #d8dded;border-radius:1rem;padding:1.3rem;box-shadow:0 8px 24px #20254b14}
+.metrics,.toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+progress{appearance:none;width:100%;height:.55rem;border:0;border-radius:1rem;overflow:hidden;background:#e9eaf4;margin:.6rem 0 .9rem;color:#5450bb}
+progress::-webkit-progress-bar{background:#e9eaf4}
+progress::-webkit-progress-value{background:#5450bb}
+progress::-moz-progress-bar{background:#5450bb}
+label{font-weight:600}
+textarea,select{font:inherit;color:inherit;background:#f8f9fd;border:1px solid #a8afc5;border-radius:.55rem;padding:.55rem .7rem}
+textarea{display:block;width:100%;margin-top:.35rem;min-height:5.4rem;resize:vertical}
+select{max-width:100%}
+.field{display:grid;gap:.3rem;margin:.35rem 0 .8rem}
+.hint{font-size:.875rem;color:#4e566f}
+.toolbar{margin:1.65rem 0 .7rem}
+.weeks{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}
+.week{background:#fff;border:1px solid #d8dded;border-radius:.8rem;padding:1rem;display:grid;grid-template-columns:1.45rem 1fr;gap:.7rem}
+.week[data-current=true]{border:2px solid #5953b7;padding:calc(1rem - 1px)}
+.week h3{font-size:1.05rem;margin:0}
+.week p{margin:.3rem 0 0;color:#414a66}
+.meta{font-size:.875rem;color:#4e566f}
+input[type=checkbox]{width:1.18rem;height:1.18rem;margin:.25rem 0 0;accent-color:#5450bb;cursor:pointer}
+:focus-visible{outline:3px solid #6854c6;outline-offset:3px}
+@media(max-width:39rem){.weeks{grid-template-columns:1fr}header{padding-top:2.6rem}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<p class="eyebrow">12 周学期版</p>
+<h1>Python 学习进度</h1>
+<p class="rules">周数按学习进度推进。每周最多 5 小时，课程和四级优先。</p>
+<p class="rules">考前两周和考试周暂停，考完从上次停下的地方继续。</p>
+</div></header>
+<main class="wrap">
+<section class="resume" aria-labelledby="resume-title">
+<div class="metrics"><h2 id="resume-title">下次从这里继续</h2><span id="count" aria-live="polite"></span></div>
+<progress id="progress" value="0" max="9" aria-label="必学周完成进度"></progress>
+<div class="field"><label for="current">当前学习周</label><select id="current"></select></div>
+<label for="note">续学笔记</label>
+<textarea id="note" placeholder="写下上次做到哪一步，下次打开就能接着学。"></textarea>
+<p id="storage" class="hint" role="status">勾选和笔记自动保存在当前浏览器。</p>
+</section>
+<div class="toolbar"><h2 id="plan-title">每周计划</h2><span class="hint">达到验收标准后勾选</span></div>
+<ol id="weeks" class="weeks" aria-labelledby="plan-title"></ol>
+</main>
+<script>
+const plan = [
+  ["字符统计","亲手运行过程序，能说清楚一个字怎么计数、为什么按次数排序。"],
+  ["命令行记账本","亲手录入两笔不同月份的账。第二次运行还能看到第一笔，总支出和各月金额都算对。"],
+  ["把记账本整理成函数","先把按月汇总拆成一个函数，确认输出和原来一样。读写文件和新增账目可以之后再拆。"],
+  ["第一次调用 AI 接口","在终端输入一句话，收到模型的回复。弄懂问题怎么发过去，API 密钥用环境变量保存。"],
+  ["让 AI 接得上追问","连续问两三句，看到把前文一起发过去后，模型能理解「它」指什么。"],
+  ["从文档里找相关内容","把一份短文本分成几段。输入一个问题，找到包含答案的那一段。"],
+  ["做一个文档问答程序","把找到的段落交给模型，回答一个问题，并标出答案来自哪一段。"],
+  ["测试文档问答","准备 3～5 个问题。答错时，能辨别是找错了段落，还是找对了但回答错了。"],
+  ["让 AI 调用一个工具","让模型判断什么时候调用你写的计算函数，再把结果告诉你。"],
+  ["处理一次工具调用失败","工具收到错误参数时，程序能给出提示，说明问题出在哪里。"],
+  ["给文档问答做个简单界面","能在浏览器里输入问题并看到回答。"],
+  ["整理两个小项目","给记账本和文档问答各写一份简短 README，说明怎么运行，再各演示一次。"]
+];
+const storageKey = "python-semester-progress-v1";
+const current = document.querySelector("#current");
+const note = document.querySelector("#note");
+const weeks = document.querySelector("#weeks");
+const storage = document.querySelector("#storage");
+const count = document.querySelector("#count");
+const progress = document.querySelector("#progress");
+const optional = number => number >= 9 && number <= 11;
+
+let state = {
+  done: [1],
+  current: 2,
+  note: "记账本的 JSON 读写、总支出和按月汇总已经讲过。下一步是在电脑上录两笔不同月份的账，验证旧账能读回。"
+};
+
+try {
+  const saved = JSON.parse(localStorage.getItem(storageKey));
+  if (saved && Array.isArray(saved.done) && Number.isInteger(saved.current) &&
+      saved.current >= 0 && saved.current <= plan.length && typeof saved.note === "string") {
+    state = saved;
+  }
+} catch {
+  storage.textContent = "无法读取浏览器中的进度。";
+}
+
+const cards = plan.map(([title, acceptance], index) => {
+  const number = index + 1;
+  current.add(new Option("第 " + number + " 周 · " + title, number));
+
+  const card = document.createElement("li");
+  card.className = "week";
+  card.innerHTML = '<input type="checkbox"><div><div class="meta"></div><h3></h3><p></p></div>';
+  card.querySelector("h3").textContent = title;
+  card.querySelector("p").textContent = acceptance;
+  const check = card.querySelector("input");
+  check.setAttribute("aria-label", "第 " + number + " 周 " + title + " 已完成");
+  check.addEventListener("change", () => {
+    state.done = state.done.filter(week => week !== number);
+    if (check.checked) state.done.push(number);
+    if (check.checked && state.current === number) {
+      state.current = plan.findIndex((_, i) => !optional(i + 1) && !state.done.includes(i + 1)) + 1;
+    }
+    save();
+    refresh();
+  });
+  weeks.append(card);
+  return {card, check, number, meta: card.querySelector(".meta")};
+});
+current.add(new Option("暂无当前学习周", 0));
+note.value = state.note;
+
+function save() {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(state));
+    storage.textContent = "勾选和笔记自动保存在当前浏览器。";
+  } catch {
+    storage.textContent = "浏览器无法保存进度。本次修改可能在刷新后丢失。";
+  }
+}
+
+function refresh() {
+  current.value = String(state.current);
+  const requiredDone = cards.filter(({number}) => !optional(number) && state.done.includes(number)).length;
+  progress.value = requiredDone;
+  count.textContent = "必学周已完成 " + requiredDone + " / 9";
+  for (const {card, check, number, meta} of cards) {
+    const active = state.current === number;
+    check.checked = state.done.includes(number);
+    card.dataset.current = String(active);
+    const tags = ["第 " + number + " 周"];
+    if (optional(number)) tags.push("选学");
+    if (check.checked) tags.push("完成");
+    if (active && !check.checked) tags.push("进行中");
+    meta.textContent = tags.join(" · ");
+  }
+}
+
+current.addEventListener("change", () => {
+  state.current = Number(current.value);
+  save();
+  refresh();
+});
+note.addEventListener("input", () => {
+  state.note = note.value;
+  save();
+});
+refresh();
+</script>
+</body>
+</html>
